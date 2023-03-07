@@ -1,0 +1,10 @@
+{
+  "name": "ariohash",
+  "version": "1.0.1",
+  "description": "hash hashalgoritm with costomize able length and salt support",
+  "main": "index.js",
+  "type": "module",
+  "keywords": [],
+  "author": "ArioDevelop",
+  "license": "ISC"
+}
