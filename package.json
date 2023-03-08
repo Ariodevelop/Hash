@@ -1,14 +1,16 @@
 {
   "name": "ario-hash",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "hash algorithm with customizable length and salt support",
   "main": "index.js",
   "type": "module",
-  "keywords": ["hash"],
+  "keywords": [
+    "hash"
+  ],
   "author": "ArioDevelop",
   "license": "ISC",
   "repository": {
-  "type": "git",
-  "url": "https://github.com/Ariodevelop/Hash.git"
+    "type": "git",
+    "url": "https://github.com/Ariodevelop/Hash.git"
   }
 }

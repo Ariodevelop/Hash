@@ -1,25 +1,39 @@
-function ArioHash({
-  input = "",
-  salt = 0,
-  outputLength = 128,
-  outputPossibility = 0,
-  pattern = /^00\w*/,
-  proofOfWorkIndex = 0,
-} = {}) {
+/**
+ * Generate a hash value based on the given options.
+ * @param {Object} [options] - An object containing options for generating the hash value.
+ * @param {string} [options.input] - The input string to generate the hash value from. If empty, the current timestamp will be used as the input.
+ * @param {number} [options.salt] - A numeric salt value to use in generating the hash value.
+ * @param {number} [options.outputLength] - The desired length of the generated hash value.
+ * @param {string} [options.outputCharacterSet] - The number of possible characters to use in the generated hash value.
+ * @param {RegExp} [options.pattern] - A regular expression to match against the generated hash value.
+ * @param {number} [options.proofOfWorkKey] - A numeric value used to find proof of work point.
+ * @returns {Object} - An object containing the generated hash value and the proof of work used to generate it.
+ */
+
+function ArioHash(options = {}) {
+  let {
+    input = "",
+    salt = 0,
+    outputLength = 128,
+    outputCharacterSet,
+    pattern = /\w*/,
+    proofOfWorkKey = 0,
+  } = options;
+
+  // Set default input to the current timestamp if none is provided
   input = input || `${Date.now()}`;
 
-  const characterSet =
-    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".slice(
-      0,
-      outputPossibility || undefined,
-    );
+  // Use english character as the default character set for the hash output
+  const defaultCharacterSet =
+    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz?!@#$%^&*()_+=-~";
+
+  const characterSet = outputCharacterSet || defaultCharacterSet;
 
   let seed = salt;
-
   let proofOfWork = input;
-  let proofProcess = proofOfWorkIndex;
+  let proofOfWorkKeyProcessor = proofOfWorkKey;
 
-  const random = [
+  const randomNumbers = [
     0xabbda52e, 0x5e64a72f, 0x4ccf59d6, 0x4f4ff1f2, 0x2697845e, 0xe66280ad,
     0x9764a314, 0x578ab16a, 0xba83c6eb, 0xc751b390, 0xda0093ea, 0xde7f5c4d,
     0xb7245271, 0x3dae31f9, 0xf16ef967, 0x3964c0b2, 0x4e3fb2e8, 0x422b1f49,
@@ -44,45 +58,50 @@ function ArioHash({
     0xab646d41, 0xe47b2bb3,
   ];
 
-  for (let i = 0; i < random.length; i++) {
-    random[i] += input.charCodeAt(i % input.length) + seed;
-    random[i] %= 0xffffffff;
+  // message pending
+  while (input.length < outputLength) {
+    input += String.fromCharCode(
+      randomNumbers[input.length % randomNumbers.length] % 0xffff,
+    );
   }
 
-  while (input.length < outputLength) {
-    input += String.fromCharCode(random[input.length % random.length] % 0xffff);
-  }
 
   let output;
+  let proofOfWorkKeyOutput;
 
   do {
     output = "";
+    proofOfWorkKeyOutput = proofOfWorkKeyProcessor;
 
-    for (const char of proofOfWork) {
-      seed += char.charCodeAt(0);
+    for (const character of proofOfWork) {
+      seed += character.charCodeAt(0);
       seed %= 0xffffffff;
+    }
+
+    for (let i = 0; i < randomNumbers.length; i++) {
+      randomNumbers[i] += input.charCodeAt(i % input.length) + seed;
+      randomNumbers[i] %= 0xffffffff;
     }
 
     for (let i = 0; i < outputLength; i++) {
       let code = i * characterSet.charCodeAt(i % characterSet.length);
 
       code += proofOfWork.charCodeAt(code % proofOfWork.length) * i;
-      code += random[i % random.length] * i;
-      code += random[outputLength % random.length];
+      code += randomNumbers[i % randomNumbers.length] * i;
+      code += randomNumbers[outputLength % randomNumbers.length];
       code += proofOfWork.charCodeAt(code % proofOfWork.length);
       code += seed;
 
       output += characterSet[code % characterSet.length];
     }
-    proofOfWork = `${input}${proofProcess}`;
-    proofProcess++;
+
+    proofOfWork = `${input}${proofOfWorkKeyProcessor.toString(36)}`;
+    proofOfWorkKeyProcessor++;
+
   } while (!output.match(pattern));
 
   return {
     hash: output,
-    pow: --proofProcess,
+    proofOfWorkIndex: proofOfWorkKeyOutput,
   };
 }
-
-export default ArioHash;
-
