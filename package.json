@@ -1,5 +1,5 @@
 {
-  "name": "ariohash",
+  "name": "ario-hash",
   "version": "0.0.1",
   "description": "hash algorithm with customizable length and salt support",
   "main": "index.js",
