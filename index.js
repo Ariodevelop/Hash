@@ -1,9 +1,24 @@
-export default function ArioHash(string = "", byteCount = 64, salt = 0) {
-  // hex numberset
-  let charset = "0123456789ABCDEF";
+function ArioHash({
+  input = "",
+  salt = 0,
+  outputLength = 128,
+  outputPossibility = 0,
+  pattern = /^00\w*/,
+  proofOfWorkIndex = 0,
+} = {}) {
+  input = input || `${Date.now()}`;
+
+  const characterSet =
+    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".slice(
+      0,
+      outputPossibility || undefined,
+    );
+
   let seed = salt;
 
-  //128 random number
+  let proofOfWork = input;
+  let proofProcess = proofOfWorkIndex;
+
   const random = [
     0xabbda52e, 0x5e64a72f, 0x4ccf59d6, 0x4f4ff1f2, 0x2697845e, 0xe66280ad,
     0x9764a314, 0x578ab16a, 0xba83c6eb, 0xc751b390, 0xda0093ea, 0xde7f5c4d,
@@ -29,29 +44,45 @@ export default function ArioHash(string = "", byteCount = 64, salt = 0) {
     0xab646d41, 0xe47b2bb3,
   ];
 
-  // initialize output
-  let output = "";
-
-  // change string if is empty, null, undifned
-  string = !string ? "0x0000" : string;
-
-  //make special number from input
-  for (const char of string) {
-    seed += char.charCodeAt(0);
-    seed %= 0xffffffff;
+  for (let i = 0; i < random.length; i++) {
+    random[i] += input.charCodeAt(i % input.length) + seed;
+    random[i] %= 0xffffffff;
   }
 
-  for (let i = 0; i < byteCount; i++) {
-    //starting to choose random character between charset
-    let code = i * charset.charCodeAt(i % charset.length);
-
-    code += string.charCodeAt(code % string.length) * i;
-    code += random[i % random.length] * i;
-    code += string.charCodeAt(code % string.length) + seed;
-
-    // add random character into output
-    output += charset[code % charset.length];
+  while (input.length < outputLength) {
+    input += String.fromCharCode(random[input.length % random.length] % 0xffff);
   }
-  //return final output
-  return output;
+
+  let output;
+
+  do {
+    output = "";
+
+    for (const char of proofOfWork) {
+      seed += char.charCodeAt(0);
+      seed %= 0xffffffff;
+    }
+
+    for (let i = 0; i < outputLength; i++) {
+      let code = i * characterSet.charCodeAt(i % characterSet.length);
+
+      code += proofOfWork.charCodeAt(code % proofOfWork.length) * i;
+      code += random[i % random.length] * i;
+      code += random[outputLength % random.length];
+      code += proofOfWork.charCodeAt(code % proofOfWork.length);
+      code += seed;
+
+      output += characterSet[code % characterSet.length];
+    }
+    proofOfWork = `${input}${proofProcess}`;
+    proofProcess++;
+  } while (!output.match(pattern));
+
+  return {
+    hash: output,
+    pow: --proofProcess,
+  };
 }
+
+export default ArioHash;
+
